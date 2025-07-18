@@ -8,47 +8,86 @@
 </head>
 <body class="bg-gray-900 text-white font-sans">
 
-  <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 rounded-lg shadow-lg">
-    <h1 class="text-3xl font-bold text-center text-green-400 mb-6">📇 WANGA VCF Contacts</h1>
-    <p class="text-center text-sm text-gray-400 mb-8">
-      Below are all saved contacts. You can preview and download each one’s VCF file.
-    </p>
+  <div class="max-w-3xl mx-auto mt-10 p-6 bg-gray-800 rounded-lg shadow-lg text-center">
+    <h1 class="text-3xl font-bold text-green-400 mb-2">📇 WANGA VCF</h1>
+    <p class="text-sm text-gray-400 mb-4">Registered users are saved securely. Full contacts will be unlocked at 100.</p>
 
-    <div id="contactList" class="space-y-4">
-      <!-- Contacts will load here -->
+    <div class="flex justify-around items-center flex-wrap gap-4 text-sm text-gray-300 mb-6">
+      <div><strong>Total Registered:</strong> <span id="userCount">Loading...</span></div>
+      <div><strong>Since Deploy:</strong> <span id="deployTimer">0:00:0</span></div>
+      <div><strong>Your Location:</strong> <span id="geo">Fetching...</span></div>
     </div>
 
-    <p class="text-xs text-center text-gray-500 mt-10">
-      © Tracker Wanga ™ — Live contact list
-    </p>
+    <button id="downloadBtn" disabled class="bg-gray-600 text-white px-6 py-2 rounded cursor-not-allowed mb-4">
+      🔒 Download All VCF (Locked)
+    </button>
+
+    <div class="mb-6">
+      <p class="text-sm text-gray-400 mb-2">🔗 Share this site:</p>
+      <div class="flex items-center justify-center gap-2">
+        <input id="copyInput" type="text" value="https://websky.onrender.com" readonly
+               class="bg-gray-700 text-white px-3 py-1 rounded w-64 text-center" />
+        <button onclick="copyLink()" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm">Copy</button>
+      </div>
+    </div>
+
+    <p class="text-xs text-gray-500 mt-10">© tracker wanga ™</p>
   </div>
 
   <script>
-    async function loadContacts() {
-      const res = await fetch('/api/contacts');
-      const data = await res.json();
+    const deployTime = new Date("2025-07-18T00:00:00Z");
 
-      const list = document.getElementById('contactList');
-      if (!data.success || !data.contacts.length) {
-        list.innerHTML = '<p class="text-center text-gray-500">No contacts found.</p>';
-        return;
+    function updateDeployTimer() {
+      const now = new Date();
+      let seconds = Math.floor((now - deployTime) / 1000);
+      let h = Math.floor(seconds / 3600);
+      let m = Math.floor((seconds % 3600) / 60);
+      let s = seconds % 60;
+      document.getElementById("deployTimer").innerText = `${h}:${m}:${s}`;
+    }
+    setInterval(updateDeployTimer, 1000);
+    updateDeployTimer();
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        document.getElementById("geo").innerText = `Lat ${latitude.toFixed(2)}, Lng ${longitude.toFixed(2)}`;
+      },
+      () => {
+        document.getElementById("geo").innerText = "Unavailable";
       }
+    );
 
-      list.innerHTML = data.contacts.map(contact => `
-        <div class="p-4 bg-gray-700 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between">
-          <div>
-            <p class="font-semibold text-lg text-white">👤 ${contact.name}</p>
-            <p class="text-sm text-gray-300">📞 ${contact.phone}</p>
-          </div>
-          <a href="${contact.vcf}" class="mt-3 md:mt-0 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded" download>
-            Download VCF
-          </a>
-        </div>
-      `).join('');
+    async function loadUserCount() {
+      try {
+        const res = await fetch("/api/contacts");
+        const data = await res.json();
+        const count = data.contacts?.length || 0;
+        document.getElementById("userCount").innerText = count;
+
+        const btn = document.getElementById("downloadBtn");
+        if (count >= 100) {
+          btn.innerText = "📥 Download All VCF";
+          btn.disabled = false;
+          btn.classList.remove("bg-gray-600", "cursor-not-allowed");
+          btn.classList.add("bg-green-500", "hover:bg-green-600");
+          btn.onclick = () => window.location.href = "/vcf/all.vcf"; // Adjust path if needed
+        }
+      } catch (err) {
+        document.getElementById("userCount").innerText = "Error";
+      }
     }
 
-    loadContacts();
+    function copyLink() {
+      const input = document.getElementById("copyInput");
+      input.select();
+      input.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+      alert("Link copied!");
+    }
+
+    loadUserCount();
   </script>
 
 </body>
-</html>
+                                                                         </html>
