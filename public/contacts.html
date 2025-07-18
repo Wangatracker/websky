@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WANGA VCF Contacts</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white font-sans">
+
+  <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-center text-green-400 mb-6">📇 WANGA VCF Contacts</h1>
+    <p class="text-center text-sm text-gray-400 mb-8">
+      Below are all saved contacts. You can preview and download each one’s VCF file.
+    </p>
+
+    <div id="contactList" class="space-y-4">
+      <!-- Contacts will load here -->
+    </div>
+
+    <p class="text-xs text-center text-gray-500 mt-10">
+      © Tracker Wanga ™ — Live contact list
+    </p>
+  </div>
+
+  <script>
+    async function loadContacts() {
+      const res = await fetch('/api/contacts');
+      const data = await res.json();
+
+      const list = document.getElementById('contactList');
+      if (!data.success || !data.contacts.length) {
+        list.innerHTML = '<p class="text-center text-gray-500">No contacts found.</p>';
+        return;
+      }
+
+      list.innerHTML = data.contacts.map(contact => `
+        <div class="p-4 bg-gray-700 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="font-semibold text-lg text-white">👤 ${contact.name}</p>
+            <p class="text-sm text-gray-300">📞 ${contact.phone}</p>
+          </div>
+          <a href="${contact.vcf}" class="mt-3 md:mt-0 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded" download>
+            Download VCF
+          </a>
+        </div>
+      `).join('');
+    }
+
+    loadContacts();
+  </script>
+
+</body>
+</html>
