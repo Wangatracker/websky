@@ -4,71 +4,124 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>WANGA VCF Contacts</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-gradient-to-br from-gray-900 via-black to-gray-800 text-white min-h-screen flex flex-col">
+<body class="bg-gray-900 text-white font-sans">
 
-  <!-- Header -->
-  <header class="text-center py-6">
-    <h1 class="text-3xl font-bold text-purple-400">📇 WANGA CONTACT MANAGER</h1>
-    <p class="text-sm text-gray-400 mt-2">View and download saved contacts as VCF files</p>
-  </header>
+  <div class="max-w-4xl mx-auto mt-10 p-6 bg-gray-800 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-green-400 text-center mb-2">📇 WANGA VCF</h1>
+    <p class="text-sm text-gray-400 text-center mb-4">Registered users are saved securely. All real contacts will unlock at 100.</p>
 
-  <!-- Auto Contacts Section -->
-  <section class="px-4">
-    <h2 class="text-xl font-semibold text-gray-200 mb-2">🔧 Auto-Generated Contacts</h2>
-    <p class="text-red-500 text-sm mb-4">⚠️ These contacts are fake for testing/demo. Do not use them in real applications.</p>
-    <div id="auto-contacts" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-sm"></div>
-    <div class="mt-4">
-      <a href="/auto.vcf" download class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white">Download Auto Contacts VCF</a>
+    <div class="flex justify-around items-center flex-wrap gap-4 text-sm text-gray-300 mb-6">
+      <div><strong>Total Registered:</strong> <span id="userCount">Loading...</span></div>
+      <div><strong>Since Deploy:</strong> <span id="deployTimer">0:00:0</span></div>
+      <div><strong>Your Location:</strong> <span id="geo">Fetching...</span></div>
     </div>
-  </section>
 
-  <!-- Real Contacts Section -->
-  <section class="mt-10 px-4">
-    <h2 class="text-xl font-semibold text-green-400 mb-2">✅ Real Saved Contacts</h2>
-    <div id="real-contacts" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-sm"></div>
-    <div class="mt-4">
-      <a href="/vcf/real_contacts.vcf" download class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white">Download Real Contacts VCF</a>
+    <div class="text-center mb-6">
+      <button id="downloadBtn" disabled class="bg-gray-600 text-white px-6 py-2 rounded cursor-not-allowed">
+        🔒 Download All VCF (Locked)
+      </button>
+      <p class="text-xs mt-2 text-red-400">⚠️ This is not your real contacts. These are VCF exports from users.</p>
     </div>
-  </section>
 
-  <!-- Import Instructions -->
-  <section class="mt-10 px-4">
-    <h2 class="text-lg font-semibold text-yellow-300 mb-2">📥 How to Import VCF Contacts</h2>
-    <ol class="list-decimal text-gray-300 text-sm ml-6 space-y-2">
-      <li>Download the VCF file from the link above.</li>
-      <li>Open your phone's <strong>Contacts</strong> app.</li>
-      <li>Tap on <strong>Settings</strong> or <strong>Manage Contacts</strong>.</li>
-      <li>Select <strong>Import</strong> and choose the VCF file you downloaded.</li>
-      <li>Confirm and wait for contacts to be added.</li>
-    </ol>
-  </section>
+    <div class="mb-6 text-sm text-gray-300">
+      <p>📥 <strong>How to import VCF to your phone:</strong></p>
+      <ol class="list-decimal ml-6 mt-2 space-y-1">
+        <li>Download any contact file below.</li>
+        <li>Open your File Manager and locate the `.vcf` file.</li>
+        <li>Tap the file and select "Import to Contacts".</li>
+        <li>Done! The contact will be saved in your phone.</li>
+      </ol>
+    </div>
 
-  <!-- Footer -->
-  <footer class="mt-auto text-center text-xs text-gray-500 py-6 border-t border-gray-700">
-    <p>© tracker wanga ™ — All rights reserved.</p>
-    <p>Contact: <a href="tel:+254758476795" class="text-blue-400 hover:underline">+254 758 476 795</a></p>
-  </footer>
+    <h2 class="text-xl font-semibold mt-10 mb-4 text-green-300">📦 Available VCF Contacts</h2>
+    <div id="contactGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+      <!-- JS will populate this -->
+    </div>
+
+    <div class="mb-6 text-center">
+      <p class="text-sm text-gray-400 mb-2">🔗 Share this site:</p>
+      <div class="flex items-center justify-center gap-2">
+        <input id="copyInput" type="text" value="https://websky.onrender.com" readonly
+               class="bg-gray-700 text-white px-3 py-1 rounded w-64 text-center" />
+        <button onclick="copyLink()" class="bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm">Copy</button>
+      </div>
+    </div>
+
+    <footer class="text-center text-xs text-gray-500 mt-10">
+      © tracker wanga ™ <br/>
+      Contact: <a href="tel:+254758476795" class="underline">+254758476795</a>
+    </footer>
+  </div>
 
   <script>
-    async function loadContacts() {
-      const autoRes = await fetch('/api/auto');
-      const auto = await autoRes.json();
-      const autoList = document.getElementById('auto-contacts');
-      auto.contacts.forEach(c => {
-        autoList.innerHTML += `<div class="bg-gray-800 p-2 rounded shadow">${c.name}<br><span class="text-gray-400">${c.number}</span></div>`;
-      });
+    const deployTime = new Date("2025-07-18T00:00:00Z");
 
-      const realRes = await fetch('/api/contacts');
-      const real = await realRes.json();
-      const realList = document.getElementById('real-contacts');
-      real.contacts.forEach(c => {
-        realList.innerHTML += `<div class="bg-gray-900 p-2 rounded shadow border border-green-500">${c.name}<br><span class="text-gray-400">${c.number}</span></div>`;
-      });
+    function updateDeployTimer() {
+      const now = new Date();
+      let seconds = Math.floor((now - deployTime) / 1000);
+      let h = Math.floor(seconds / 3600);
+      let m = Math.floor((seconds % 3600) / 60);
+      let s = seconds % 60;
+      document.getElementById("deployTimer").innerText = `${h}:${m}:${s}`;
+    }
+    setInterval(updateDeployTimer, 1000);
+    updateDeployTimer();
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        document.getElementById("geo").innerText = `Lat ${latitude.toFixed(2)}, Lng ${longitude.toFixed(2)}`;
+      },
+      () => {
+        document.getElementById("geo").innerText = "Unavailable";
+      }
+    );
+
+    async function loadUserCount() {
+      try {
+        const res = await fetch("/api/contacts");
+        const data = await res.json();
+        const count = data.contacts?.length || 0;
+        document.getElementById("userCount").innerText = count;
+
+        const grid = document.getElementById("contactGrid");
+        data.contacts.forEach(contact => {
+          const box = document.createElement("div");
+          box.className = "bg-gray-700 p-4 rounded shadow text-center";
+
+          box.innerHTML = `
+            <h3 class="text-green-300 font-semibold">${contact.fullname}</h3>
+            <p class="text-sm">${contact.phone}</p>
+            <a href="${contact.vcf}" download class="text-blue-400 underline mt-2 inline-block">Download VCF</a>
+          `;
+          grid.appendChild(box);
+        });
+
+        const btn = document.getElementById("downloadBtn");
+        if (count >= 100) {
+          btn.innerText = "📥 Download All VCF";
+          btn.disabled = false;
+          btn.classList.remove("bg-gray-600", "cursor-not-allowed");
+          btn.classList.add("bg-green-500", "hover:bg-green-600");
+          btn.onclick = () => window.location.href = "/vcf/all.vcf"; // Update if needed
+        }
+      } catch (err) {
+        document.getElementById("userCount").innerText = "Error";
+      }
     }
 
-    loadContacts();
+    function copyLink() {
+      const input = document.getElementById("copyInput");
+      input.select();
+      input.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+      alert("Link copied!");
+    }
+
+    loadUserCount();
   </script>
+
 </body>
-                                                                                                   </html>
+                                                                       </html>
