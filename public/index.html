@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WANGA VCF Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0d1117;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      width: 250px;
+      border-radius: 6px;
+      border: none;
+    }
+    button {
+      background: #1f6feb;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    a {
+      color: #58a6ff;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Save Contact to VCF</h1>
+  <form id="contactForm">
+    <input type="text" id="name" placeholder="Full Name" required />
+    <input type="tel" id="phone" placeholder="+2547..." required />
+    <button type="submit">Save Contact</button>
+  </form>
+
+  <div id="message"></div>
+
+  <a href="/contacts.html">View Saved Contacts</a>
+
+  <script>
+    const form = document.getElementById('contactForm');
+    const message = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+
+      const res = await fetch('/api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        message.innerHTML = `<p>✅ Saved! <a href="${data.vcf}" download>Download VCF</a></p>`;
+        form.reset();
+      } else {
+        message.innerHTML = `<p style="color:red;">❌ ${data.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>
