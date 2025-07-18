@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WANGA CONTACT VCF</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white font-sans">
+
+  <div class="max-w-xl mx-auto mt-10 p-6 bg-gray-800 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-center text-green-400 mb-4">WANGA CONTACT VCF</h1>
+    <p class="text-center text-gray-300 mb-6">
+      Generate a downloadable VCF file after submitting your contact. Come back after 24 hours to get it. 
+    </p>
+
+    <!-- Contact Counter and Time -->
+    <div class="flex justify-between items-center mb-4">
+      <div id="total-contacts" class="text-sm text-yellow-400">Total Registered: Loading...</div>
+      <div id="clock" class="text-sm text-blue-300">Time: --:--:--</div>
+    </div>
+
+    <!-- Contact Form -->
+    <form id="vcfForm" class="space-y-4">
+      <div>
+        <label class="block text-sm">Full Name</label>
+        <input type="text" id="name" required class="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 text-white" placeholder="e.g. John Doe">
+      </div>
+      <div>
+        <label class="block text-sm">Phone Number</label>
+        <input type="tel" id="phone" required class="w-full px-3 py-2 rounded bg-gray-700 border border-gray-600 text-white" placeholder="+2547...">
+      </div>
+      <button type="submit" class="w-full bg-green-500 hover:bg-green-600 py-2 rounded text-white font-semibold">Generate VCF</button>
+    </form>
+
+    <!-- Download Link -->
+    <div id="download-section" class="mt-6 hidden">
+      <p class="text-green-300 mb-2">✅ Contact saved successfully.</p>
+      <a id="downloadLink" href="#" download class="text-blue-400 underline">Download VCF File</a>
+    </div>
+
+    <!-- Share and Copy -->
+    <div class="mt-6 border-t border-gray-600 pt-4">
+      <p class="text-sm text-gray-400 mb-2">🔗 Share this tool:</p>
+      <input type="text" id="shareLink" readonly class="w-full bg-gray-700 text-white px-3 py-2 rounded" value="https://tracker-cyber-services.web.app/vcf">
+      <button onclick="copyLink()" class="mt-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">Copy Link</button>
+    </div>
+  </div>
+
+  <script>
+    // Update time
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = "Time: " + now.toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Get total contacts
+    fetch('/api/total')
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('total-contacts').textContent = `Total Registered: ${data.total}`;
+      });
+
+    // Handle form submit
+    const form = document.getElementById('vcfForm');
+    const downloadSection = document.getElementById('download-section');
+    const downloadLink = document.getElementById('downloadLink');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      
+      const res = await fetch('/api/save-contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        downloadLink.href = data.vcfUrl;
+        downloadSection.classList.remove('hidden');
+        form.reset();
+      } else {
+        alert('❌ Failed to save contact.');
+      }
+    });
+
+    function copyLink() {
+      const link = document.getElementById("shareLink");
+      link.select();
+      document.execCommand("copy");
+      alert("✅ Link copied!");
+    }
+  </script>
+
+</body>
+</html>
