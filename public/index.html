@@ -3,112 +3,93 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>WANGA VCF Generator</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white font-sans min-h-screen flex flex-col items-center p-6">
-
-  <header class="text-center mb-6">
-    <h1 class="text-4xl font-bold text-purple-400 mb-2">WANGA CONTACT VCF</h1>
-    <p class="text-gray-300">Create and download contacts in VCF format quickly. No login required.</p>
-  </header>
-
-  <!-- Info Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-5xl mb-8 text-center">
-    <div class="bg-gray-800 rounded-xl p-4 shadow-md">
-      <h2 class="text-lg text-blue-400 font-semibold">📅 Deployed Time</h2>
-      <p id="deployTime" class="text-white text-xl mt-1">0:00:00</p>
-    </div>
-    <div class="bg-gray-800 rounded-xl p-4 shadow-md">
-      <h2 class="text-lg text-green-400 font-semibold">📞 Total Contacts</h2>
-      <p id="contactCount" class="text-white text-xl mt-1">...</p>
-    </div>
-    <div class="bg-gray-800 rounded-xl p-4 shadow-md">
-      <h2 class="text-lg text-pink-400 font-semibold">📍 Your Location</h2>
-      <p id="location" class="text-white text-sm mt-1">Detecting...</p>
-    </div>
-  </div>
-
-  <!-- Form -->
-  <form id="contactForm" class="w-full max-w-md bg-gray-900 rounded-xl p-6 shadow-xl">
-    <input type="text" id="name" placeholder="Full Name" required class="w-full p-3 rounded mb-4 bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-    <input type="tel" id="phone" placeholder="+2547..." required class="w-full p-3 rounded mb-4 bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-    <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded transition">Save Contact</button>
-    <div id="message" class="text-center mt-4 text-sm"></div>
-  </form>
-
-  <!-- View Link -->
-  <a href="/contacts.html" class="mt-6 text-blue-400 underline">📂 View Saved Contacts</a>
-
-  <!-- Footer -->
-  <footer class="mt-auto pt-12 text-center text-gray-500 text-xs">
-    &copy; tracker wanga ™ — All rights reserved.
-  </footer>
-
-  <script>
-    // Countdown since deployment
-    const deployTimeElem = document.getElementById('deployTime');
-    const start = new Date();
-    setInterval(() => {
-      const now = new Date();
-      const diff = Math.floor((now - start) / 1000);
-      const h = String(Math.floor(diff / 3600)).padStart(2, '0');
-      const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
-      const s = String(diff % 60).padStart(2, '0');
-      deployTimeElem.textContent = `${h}:${m}:${s}`;
-    }, 1000);
-
-    // Geolocation
-    const locationElem = document.getElementById('location');
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          const { latitude, longitude } = pos.coords;
-          locationElem.textContent = `Lat: ${latitude.toFixed(3)}, Lng: ${longitude.toFixed(3)}`;
-        },
-        () => locationElem.textContent = 'Permission denied'
-      );
-    } else {
-      locationElem.textContent = 'Not supported';
-    }
-
-    // Submit form
-    const form = document.getElementById('contactForm');
-    const message = document.getElementById('message');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  <title>Digital Contact VCF</title>
+  <script defer>
+    async function quickSaveContact(event) {
+      event.preventDefault();
       const name = document.getElementById('name').value.trim();
       const phone = document.getElementById('phone').value.trim();
+      const status = document.getElementById('status');
 
-      const res = await fetch('/api/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        message.innerHTML = `<p class="text-green-400">✅ Saved! <a href="${data.vcf}" download class="underline text-blue-400">Download VCF</a></p>`;
-        form.reset();
-        fetchCount(); // Refresh counter
-      } else {
-        message.innerHTML = `<p class="text-red-400">❌ ${data.message}</p>`;
+      if (!name || !phone) {
+        status.textContent = 'Please enter name and phone.';
+        return;
       }
-    });
 
-    // Fetch contact count
-    async function fetchCount() {
       try {
-        const res = await fetch('/api/count');
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone })
+        });
+
         const data = await res.json();
-        document.getElementById('contactCount').textContent = data.count || '0';
-      } catch {
-        document.getElementById('contactCount').textContent = 'Error';
+        if (res.ok) {
+          status.textContent = '✅ Contact saved!';
+          document.getElementById('contact-form').reset();
+        } else {
+          status.textContent = `❌ ${data.error}`;
+        }
+      } catch (err) {
+        status.textContent = '❌ Failed to connect to server.';
       }
     }
-
-    fetchCount();
   </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+      background-color: #f3f4f6;
+    }
+    h1 {
+      color: #111827;
+    }
+    label {
+      display: block;
+      margin-top: 1em;
+      font-weight: bold;
+    }
+    input {
+      padding: 0.5em;
+      margin-top: 0.3em;
+      width: 100%;
+      max-width: 300px;
+    }
+    button {
+      margin-top: 1em;
+      padding: 0.7em 1.2em;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #1e40af;
+    }
+    #status {
+      margin-top: 1em;
+      font-weight: bold;
+      color: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <h1>Save a New Contact</h1>
+  <form id="contact-form" onsubmit="quickSaveContact(event)">
+    <label for="name">Name</label>
+    <input id="name" type="text" placeholder="John Doe" required />
+
+    <label for="phone">Phone Number</label>
+    <input id="phone" type="tel" placeholder="+254700000000" required />
+
+    <button type="submit">Save Contact</button>
+  </form>
+
+  <p id="status"></p>
+
+  <hr style="margin: 2em 0;" />
+
+  <a href="/dashboard.html">Go to Dashboard →</a>
 </body>
       </html>
