@@ -26,13 +26,13 @@
   <form id="contactForm" class="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-md">
     <h2 class="text-xl font-semibold text-blue-400 mb-4">Add a New Contact</h2>
     <div class="mb-4">
-      <input type="text" id="fullName" name="fullName" required placeholder="Full Name" class="w-full px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white" />
+      <input type="text" id="fullName" required placeholder="Full Name" class="w-full px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white" />
     </div>
     <div class="mb-4">
-      <input type="text" id="phone" name="phone" required placeholder="Phone Number" class="w-full px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white" />
+      <input type="text" id="phone" required placeholder="Phone Number" class="w-full px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white" />
     </div>
     <div class="mb-4">
-      <input type="email" id="email" name="email" placeholder="Email (optional)" class="w-full px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white" />
+      <input type="email" id="email" placeholder="Email (optional)" class="w-full px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white" />
     </div>
     <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition">Save Contact</button>
   </form>
@@ -73,6 +73,10 @@
 </footer>
 
 <script>
+  document.getElementById("sidebarToggle").addEventListener("click", () => {
+    alert("Sidebar toggle clicked (no sidebar in current layout).");
+  });
+
   async function loadContactStats() {
     try {
       const res = await fetch("/api/contacts/count");
@@ -116,11 +120,15 @@
     document.getElementById("batteryStatus").textContent = `${level}% - ${charging}`;
   }
 
-  navigator.getBattery?.().then(battery => {
-    updateBatteryStatus(battery);
-    battery.addEventListener("levelchange", () => updateBatteryStatus(battery));
-    battery.addEventListener("chargingchange", () => updateBatteryStatus(battery));
-  });
+  if (navigator.getBattery) {
+    navigator.getBattery().then(battery => {
+      updateBatteryStatus(battery);
+      battery.addEventListener("levelchange", () => updateBatteryStatus(battery));
+      battery.addEventListener("chargingchange", () => updateBatteryStatus(battery));
+    });
+  } else {
+    document.getElementById("batteryStatus").textContent = "Battery API unsupported";
+  }
 
   function updateNetworkStatus() {
     const status = navigator.onLine ? "Online" : "Offline";
@@ -179,4 +187,4 @@
 </script>
 
   </body>
-      </html>
+        </html>
