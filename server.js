@@ -1,89 +1,72 @@
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
+const admin = require('firebase-admin');
 const path = require('path');
 
+// Initialize Firebase Admin SDK
+const serviceAccount = require('./serviceAccountKey.json'); // <-- You must upload this file!
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
+const db = admin.firestore();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'))); // Serve your frontend files
 
-// Persistent files
-const contactsFile = path.join(__dirname, 'contacts.json');
-const vcfFolder = path.join(__dirname, 'public/vcf');
-
-// Ensure directories and file exist
-if (!fs.existsSync(vcfFolder)) fs.mkdirSync(vcfFolder);
-if (!fs.existsSync(contactsFile)) fs.writeFileSync(contactsFile, JSON.stringify([]));
-
-// Helper: Save contact persistently
-function saveContact(contact) {
-  try {
-    const data = JSON.parse(fs.readFileSync(contactsFile, 'utf-8'));
-    data.push(contact);
-    fs.writeFileSync(contactsFile, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.error("Failed to save contact:", err);
-  }
-}
-
-// Helper: Generate VCF format
-function generateVCF(name, phone) {
-  return `BEGIN:VCARD
-VERSION:3.0
-FN:${name}
-TEL;TYPE=CELL:${phone}
-END:VCARD`;
-}
-
-// POST: Save contact and generate VCF
-app.post('/api/save', (req, res) => {
-  const { name, phone } = req.body;
-  if (!name || !phone) {
-    return res.status(400).json({ success: false, message: 'Name and phone are required' });
-  }
-
-  const filename = `${Date.now()}-${name.replace(/\s+/g, '_')}.vcf`;
-  const filepath = `/vcf/${filename}`;
-  const fullVCFPath = path.join(vcfFolder, filename);
-
-  const vcfData = generateVCF(name, phone);
-  try {
-    fs.writeFileSync(fullVCFPath, vcfData);
-    const contact = { name, phone, vcf: filepath };
-    saveContact(contact);
-    return res.json({ success: true, message: 'Contact saved', vcf: filepath });
-  } catch (error) {
-    console.error("Error saving VCF or contact:", error);
-    return res.status(500).json({ success: false, message: 'Internal server error' });
-  }
-});
-
-// GET: Retrieve all saved contacts
-app.get('/api/contacts', (req, res) => {
-  try {
-    const contacts = JSON.parse(fs.readFileSync(contactsFile, 'utf-8'));
-    res.json({ success: true, contacts });
-  } catch (error) {
-    console.error("Error reading contacts:", error);
-    res.status(500).json({ success: false, message: 'Failed to read contacts' });
-  }
-});
-
-// Serve index.html
+// Routes
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Serve contacts.html
-app.get('/contacts', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/contacts.html'));
+// Save a contact
+app.post('/api/contact', async (req, res) => {
+  const { fullName, phone, email } = req.body;
+
+  if (!fullName || !phone) {
+    return res.status(400).json({ error: 'Name and phone are required' });
+  }
+
+  try {
+    await db.collection('contacts').add({ fullName, phone, email: email || '' });
+    res.status(200).json({ message: 'Contact saved' });
+  } catch (err) {
+    console.error('Error saving contact:', err);
+    res.status(500).json({ error: 'Failed to save contact' });
+  }
 });
 
-// Start server
+// Get contact stats
+app.get('/api/contacts/count', async (req, res) => {
+  try {
+    const snapshot = await db.collection('contacts').get();
+    const total = snapshot.size;
+    const targeted = total > 100 ? 100 : total;
+
+    res.json({ total, targeted });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch counts' });
+  }
+});
+
+// Get all contacts
+app.get('/api/contacts', async (req, res) => {
+  try {
+    const snapshot = await db.collection('contacts').get();
+    const contacts = snapshot.docs.map(doc => doc.data());
+
+    res.json(contacts);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch contacts' });
+  }
+});
+
+// Start the server
 app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
