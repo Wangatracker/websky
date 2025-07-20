@@ -1,56 +1,60 @@
 const express = require('express');
 const admin = require('firebase-admin');
 const fs = require('fs');
-const cors = require('cors');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+const PORT = process.env.PORT || 3000;
 
+app.use(express.static('public'));
+app.use(express.json());
+
+// Init Firebase
 admin.initializeApp({
-  credential: admin.credential.applicationDefault(), // Render uses env
+  credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
 });
 const db = admin.firestore();
 
+// POST /api/contact – Save contact
 app.post('/api/contact', async (req, res) => {
-  const { name, phone } = req.body;
-  if (!name || !phone) return res.status(400).json({ error: 'Missing fields' });
-
   try {
-    await db.collection('contacts').add({ name, phone });
-    res.status(200).json({ message: 'Contact saved' });
+    const { name, phone } = req.body;
+    if (!name || !phone) return res.status(400).json({ error: 'Missing name or phone' });
+
+    await db.collection('contacts').add({ name, phone, createdAt: new Date() });
+    res.status(200).json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to save contact' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-app.get('/api/contacts/count', async (req, res) => {
+// GET /api/contacts – Return all contacts
+app.get('/api/contacts', async (req, res) => {
   try {
-    const snapshot = await db.collection('contacts').get();
-    res.json({ count: snapshot.size });
+    const snapshot = await db.collection('contacts').orderBy('createdAt', 'desc').get();
+    const contacts = snapshot.docs.map(doc => doc.data());
+    res.status(200).json({ contacts });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to count contacts' });
+    res.status(500).json({ error: 'Failed to load contacts' });
   }
 });
 
+// GET /contacts.vcf – Export VCF file
 app.get('/contacts.vcf', async (req, res) => {
   try {
     const snapshot = await db.collection('contacts').get();
-    let vcf = '';
-    snapshot.forEach(doc => {
-      const { name, phone } = doc.data();
-      vcf += `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\nTEL:${phone}\nEND:VCARD\n`;
-    });
+    const contacts = snapshot.docs.map(doc => doc.data());
+
+    const vcfData = contacts.map(c => (
+      `BEGIN:VCARD\nVERSION:3.0\nFN:${c.name}\nTEL:${c.phone}\nEND:VCARD`
+    )).join('\n');
+
+    res.setHeader('Content-Disposition', 'attachment; filename="contacts.vcf"');
     res.setHeader('Content-Type', 'text/vcard');
-    res.setHeader('Content-Disposition', 'attachment; filename=contacts.vcf');
-    res.send(vcf);
+    res.send(vcfData);
   } catch (err) {
     res.status(500).send('Failed to generate VCF');
   }
 });
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
