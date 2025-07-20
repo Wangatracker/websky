@@ -1,0 +1,48 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard - Digital Contact VCF</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 p-6">
+  <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6">
+    <h2 class="text-xl font-bold mb-4">Save Contact</h2>
+    <form id="contactForm" class="space-y-4">
+      <input type="text" id="name" placeholder="Full Name" class="w-full p-2 border rounded" required />
+      <input type="tel" id="phone" placeholder="Phone Number" class="w-full p-2 border rounded" required />
+      <input type="email" id="email" placeholder="Email Address" class="w-full p-2 border rounded" required />
+      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Save</button>
+    </form>
+
+    <div class="mt-6">
+      <a href="/contacts.vcf" class="text-blue-500 hover:underline">Download VCF</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('contactForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const phone = document.getElementById('phone').value;
+      const email = document.getElementById('email').value;
+
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, email })
+      });
+
+      if (response.ok) {
+        alert('Contact saved!');
+        e.target.reset();
+      } else {
+        alert('Error saving contact.');
+      }
+    });
+  </script>
+</body>
+        </html>
+        
