@@ -1,190 +1,103 @@
-<!DOCTYPE html><html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Digital Contact VCF Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  </head>
-  <body class="bg-gradient-to-br from-gray-900 via-purple-800 to-gray-700 text-gray-100 min-h-screen flex flex-col">
-    <main class="flex-grow flex flex-col px-4 py-6">
-      <div class="flex items-center mb-4">
-        <button id="sidebarToggle" class="text-white text-3xl mr-4">&#9776;</button>
-        <h1 class="text-3xl font-bold text-blue-400">Welcome Back to Digital Contact VCF</h1>
-      </div>
-      <p class="mb-6 text-gray-300">Your secure, unlimited contact manager</p><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-    <div class="bg-gray-900 p-4 rounded-2xl">
-      <h3 class="text-lg font-semibold text-purple-400">Available Contacts</h3>
-      <p id="availableCount" class="text-xl font-bold text-white">0</p>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Contact Dashboard</title>
+  <script defer>
+    // Fetch and display contacts
+    async function loadContacts() {
+      const list = document.getElementById('contact-list');
+      list.innerHTML = 'Loading...';
 
-    <div class="bg-gray-900 p-4 rounded-2xl">
-      <h3 class="text-lg font-semibold text-purple-400">Targeted Contacts</h3>
-      <p id="targetedCount" class="text-xl font-bold text-white">0 / 100</p>
-    </div>
-  </div>
+      try {
+        const res = await fetch('/api/contacts');
+        const data = await res.json();
 
-  <form id="contactForm" class="bg-gray-800 p-6 rounded-2xl shadow-lg w-full max-w-md">
-    <h2 class="text-xl font-semibold text-blue-400 mb-4">Add a New Contact</h2>
-    <div class="mb-4">
-      <input type="text" id="fullName" required placeholder="Full Name" class="w-full px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white" />
-    </div>
-    <div class="mb-4">
-      <input type="text" id="phone" required placeholder="Phone Number" class="w-full px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white" />
-    </div>
-    <div class="mb-4">
-      <input type="email" id="email" placeholder="Email (optional)" class="w-full px-3 py-2 rounded-lg bg-gray-700 border border-gray-600 text-white" />
-    </div>
-    <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition">Save Contact</button>
-  </form>
+        if (res.ok && Array.isArray(data.contacts)) {
+          list.innerHTML = '';
+          data.contacts.forEach(contact => {
+            const item = document.createElement('li');
+            item.textContent = `${contact.name} - ${contact.phone}`;
+            list.appendChild(item);
+          });
 
-  <p id="notify" class="mt-4 text-green-400 hidden">✅ Contact successfully saved!</p>
-
-  <div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div class="bg-gray-900 p-4 rounded-2xl">
-      <h3 class="text-lg font-semibold text-purple-400">Battery Status</h3>
-      <p id="batteryStatus" class="text-white">Checking...</p>
-    </div>
-
-    <div class="bg-gray-900 p-4 rounded-2xl">
-      <h3 class="text-lg font-semibold text-purple-400">Network & Location</h3>
-      <p id="networkStatus" class="text-white">Checking...</p>
-      <p id="geoLocation" class="text-white">Locating...</p>
-    </div>
-
-    <div class="bg-gray-900 p-4 rounded-2xl">
-      <h3 class="text-lg font-semibold text-purple-400">IP Address</h3>
-      <p id="ipAddress" class="text-white">Loading...</p>
-    </div>
-
-    <div class="bg-gray-900 p-4 rounded-2xl">
-      <h3 class="text-lg font-semibold text-purple-400">Live Time</h3>
-      <p id="liveTime" class="text-white">--:--:--</p>
-    </div>
-
-    <div class="bg-gray-900 p-4 rounded-2xl">
-      <h3 class="text-lg font-semibold text-purple-400">Download VCF</h3>
-      <button onclick="downloadVCF()" class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">Download Contacts.vcf</button>
-    </div>
-  </div>
-</main>
-
-<footer class="bg-gray-800 text-center py-4 text-sm text-gray-400">
-  tracker wanga &mdash; Managed by Tracker Engines
-</footer>
-
-<script>
-  document.getElementById("sidebarToggle").addEventListener("click", () => {
-    alert("Sidebar toggle clicked (no sidebar in current layout).");
-  });
-
-  async function loadContactStats() {
-    try {
-      const res = await fetch("/api/contacts/count");
-      const data = await res.json();
-      document.getElementById("availableCount").textContent = data.total;
-      document.getElementById("targetedCount").textContent = `${data.targeted} / 100`;
-    } catch (err) {
-      console.error("Failed to load contact stats:", err);
-    }
-  }
-
-  document.getElementById("contactForm").addEventListener("submit", async function (e) {
-    e.preventDefault();
-
-    const data = {
-      fullName: document.getElementById("fullName").value,
-      phone: document.getElementById("phone").value,
-      email: document.getElementById("email").value,
-    };
-
-    try {
-      const res = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!res.ok) throw new Error();
-
-      document.getElementById("notify").classList.remove("hidden");
-      loadContactStats();
-      document.getElementById("contactForm").reset();
-    } catch {
-      alert("Failed to save contact.");
-    }
-  });
-
-  function updateBatteryStatus(battery) {
-    const level = Math.round(battery.level * 100);
-    const charging = battery.charging ? "Charging" : "Not Charging";
-    document.getElementById("batteryStatus").textContent = `${level}% - ${charging}`;
-  }
-
-  if (navigator.getBattery) {
-    navigator.getBattery().then(battery => {
-      updateBatteryStatus(battery);
-      battery.addEventListener("levelchange", () => updateBatteryStatus(battery));
-      battery.addEventListener("chargingchange", () => updateBatteryStatus(battery));
-    });
-  } else {
-    document.getElementById("batteryStatus").textContent = "Battery API unsupported";
-  }
-
-  function updateNetworkStatus() {
-    const status = navigator.onLine ? "Online" : "Offline";
-    document.getElementById("networkStatus").textContent = `Status: ${status}`;
-  }
-
-  window.addEventListener("online", updateNetworkStatus);
-  window.addEventListener("offline", updateNetworkStatus);
-  updateNetworkStatus();
-
-  function updateTime() {
-    const now = new Date();
-    document.getElementById("liveTime").textContent = now.toLocaleTimeString();
-  }
-
-  setInterval(updateTime, 1000);
-  updateTime();
-
-  async function fetchIP() {
-    try {
-      const res = await fetch("https://api.ipify.org?format=json");
-      const data = await res.json();
-      document.getElementById("ipAddress").textContent = data.ip;
-    } catch (e) {
-      document.getElementById("ipAddress").textContent = "Unavailable";
-    }
-  }
-
-  fetchIP();
-
-  function downloadVCF() {
-    window.location.href = "/contacts.vcf";
-  }
-
-  function getLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(async position => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
-          const data = await res.json();
-          document.getElementById("geoLocation").textContent = `Location: ${data.address.city || data.address.town || data.address.village || "Unknown"}, ${data.address.country}`;
-        } catch {
-          document.getElementById("geoLocation").textContent = "Location: Unavailable";
+          document.getElementById('total').textContent = `Total Contacts: ${data.contacts.length}`;
+        } else {
+          list.innerHTML = 'Failed to load contacts.';
         }
-      }, () => {
-        document.getElementById("geoLocation").textContent = "Location: Permission Denied";
-      });
-    } else {
-      document.getElementById("geoLocation").textContent = "Location: Unsupported";
+      } catch (err) {
+        list.innerHTML = '❌ Server error.';
+      }
     }
-  }
 
-  getLocation();
-  loadContactStats();
-</script>
+    // Download VCF
+    async function downloadVCF() {
+      try {
+        const res = await fetch('/contacts.vcf');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'contacts.vcf';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('❌ Failed to download VCF file.');
+      }
+    }
 
-  </body>
-        </html>
+    window.onload = loadContacts;
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9fafb;
+      padding: 2em;
+    }
+    h1 {
+      color: #111827;
+    }
+    #total {
+      margin-top: 0.5em;
+      font-weight: bold;
+    }
+    ul {
+      margin-top: 1em;
+      padding-left: 1em;
+    }
+    li {
+      margin-bottom: 0.5em;
+      list-style-type: disc;
+    }
+    button {
+      margin-top: 1.5em;
+      padding: 0.6em 1.2em;
+      background-color: #10b981;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #059669;
+    }
+    a {
+      display: inline-block;
+      margin-top: 2em;
+      color: #3b82f6;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Dashboard</h1>
+  <div id="total">Total Contacts: 0</div>
+  <ul id="contact-list"></ul>
+
+  <button onclick="downloadVCF()">📥 Download VCF</button>
+
+  <br />
+  <a href="/index.html">← Back to Home</a>
+</body>
+  </html>
