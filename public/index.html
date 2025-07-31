@@ -5,36 +5,61 @@
   <title>WhatsApp Pairing</title>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #fff;
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-top: 50px;
+      justify-content: center;
+      height: 100vh;
     }
     input, button {
       padding: 10px;
+      font-size: 16px;
       margin: 10px;
-      width: 300px;
+    }
+    #codeDisplay {
+      margin-top: 20px;
+      font-size: 20px;
+      background: #222;
+      padding: 15px;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
-  <h2>Enter Your WhatsApp Number</h2>
-  <input id="number" type="text" placeholder="e.g. 2547XXXXXXXX">
-  <button onclick="requestCode()">Request Pairing Code</button>
-  <p id="response"></p>
+  <h2>🔗 WhatsApp Device Pairing</h2>
+  <form id="pairForm">
+    <input type="tel" id="phone" placeholder="e.g. 254712345678" required />
+    <button type="submit">Get Pairing Code</button>
+  </form>
+  <div id="codeDisplay"></div>
 
   <script>
-    async function requestCode() {
-      const number = document.getElementById('number').value;
-      const res = await fetch('/pair', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ number })
-      });
-      const data = await res.json();
-      document.getElementById('response').textContent = data.message || data.error;
-    }
+    document.getElementById('pairForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = document.getElementById('phone').value;
+      const codeDisplay = document.getElementById('codeDisplay');
+      codeDisplay.textContent = '📲 Requesting code...';
+
+      try {
+        const res = await fetch('/pair', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          codeDisplay.innerHTML = `<strong>🔑 Code:</strong> ${data.code}<br><strong>📱 Instruction:</strong> Go to WhatsApp → Linked Devices → Enter the code`;
+        } else {
+          codeDisplay.textContent = `❌ ${data.message}`;
+        }
+      } catch (err) {
+        codeDisplay.textContent = '❌ Failed to contact server.';
+      }
+    });
   </script>
 </body>
-    </html>
+  </html>
