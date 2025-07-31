@@ -20,15 +20,15 @@ app.post("/pair", async (req, res) => {
   const phone = req.body.phone?.trim();
   if (!phone) return res.status(400).send("Phone number is required");
 
+  async function start() {
   const { state, saveCreds } = await useMultiFileAuthState("auth_info");
   const { version } = await fetchLatestBaileysVersion();
-
   const sock = makeWASocket({
     version,
     auth: state,
-    logger: P({ level: "fatal" }), // ✅ Looks like a real Chrome browser
+    logger: P({ level: "fatal" }),
   });
-
+    
   sockGlobal = sock;
   sock.ev.on("creds.update", saveCreds);
 
