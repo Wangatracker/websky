@@ -1,35 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>WhatsApp Pairing</title>
   <style>
-    body { font-family: Arial; padding: 2rem; background: #f9f9f9; }
-    input, button { padding: 0.5rem; font-size: 16px; }
-    #result { margin-top: 1rem; font-weight: bold; }
+    body {
+      font-family: sans-serif;
+      background: #f1f1f1;
+      padding: 2rem;
+      text-align: center;
+    }
+    input {
+      padding: 0.7rem;
+      font-size: 16px;
+      width: 250px;
+    }
+    button {
+      padding: 0.7rem 1.5rem;
+      font-size: 16px;
+      background: #075e54;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 1rem;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
-  <h2>Pair WhatsApp Bot</h2>
-  <form id="pairForm">
-    <input type="text" id="phone" placeholder="e.g. 2547xxxxxxxx" required />
-    <button type="submit">Generate Code</button>
+  <h2>Link WhatsApp to Bot</h2>
+  <form id="form">
+    <input type="text" id="phone" placeholder="2547XXXXXXXX" required />
+    <br><br>
+    <button type="submit">Generate Pairing Code</button>
   </form>
-  <div id="result"></div>
+  <div id="status"></div>
 
   <script>
-    const form = document.getElementById("pairForm");
+    const form = document.getElementById("form");
+    const statusDiv = document.getElementById("status");
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const phone = document.getElementById("phone").value;
-      const res = await fetch("/pair", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
-      });
-      const data = await res.json();
-      document.getElementById("result").innerHTML =
-        "🔑 Pairing Code: <b>" + data.code + "</b><br>📱 Go to WhatsApp > Linked Devices";
+      statusDiv.textContent = "🔔 Waiting for notification...";
+
+      try {
+        const res = await fetch("/pair", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone }),
+        });
+
+        const data = await res.json();
+        if (data.code) {
+          statusDiv.innerHTML = `✅ Use this code to link:<br><strong>${data.code}</strong><br><br>Open WhatsApp > Linked Devices`;
+        } else {
+          statusDiv.textContent = "❌ Failed to get code.";
+        }
+      } catch (err) {
+        console.error(err);
+        statusDiv.textContent = "❌ Server error. Try again.";
+      }
     });
   </script>
 </body>
-    </html>
+  </html>
