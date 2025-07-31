@@ -1,65 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>WhatsApp Pairing</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    input, button {
-      padding: 10px;
-      font-size: 16px;
-      margin: 10px;
-    }
-    #codeDisplay {
-      margin-top: 20px;
-      font-size: 20px;
-      background: #222;
-      padding: 15px;
-      border-radius: 8px;
-    }
+    body { font-family: Arial; padding: 2rem; background: #f9f9f9; }
+    input, button { padding: 0.5rem; font-size: 16px; }
+    #result { margin-top: 1rem; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h2>🔗 WhatsApp Device Pairing</h2>
+  <h2>Pair WhatsApp Bot</h2>
   <form id="pairForm">
-    <input type="tel" id="phone" placeholder="e.g. 254712345678" required />
-    <button type="submit">Get Pairing Code</button>
+    <input type="text" id="phone" placeholder="e.g. 2547xxxxxxxx" required />
+    <button type="submit">Generate Code</button>
   </form>
-  <div id="codeDisplay"></div>
+  <div id="result"></div>
 
   <script>
-    document.getElementById('pairForm').addEventListener('submit', async (e) => {
+    const form = document.getElementById("pairForm");
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const phone = document.getElementById('phone').value;
-      const codeDisplay = document.getElementById('codeDisplay');
-      codeDisplay.textContent = '📲 Requesting code...';
-
-      try {
-        const res = await fetch('/pair', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone })
-        });
-
-        const data = await res.json();
-        if (res.ok) {
-          codeDisplay.innerHTML = `<strong>🔑 Code:</strong> ${data.code}<br><strong>📱 Instruction:</strong> Go to WhatsApp → Linked Devices → Enter the code`;
-        } else {
-          codeDisplay.textContent = `❌ ${data.message}`;
-        }
-      } catch (err) {
-        codeDisplay.textContent = '❌ Failed to contact server.';
-      }
+      const phone = document.getElementById("phone").value;
+      const res = await fetch("/pair", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      document.getElementById("result").innerHTML =
+        "🔑 Pairing Code: <b>" + data.code + "</b><br>📱 Go to WhatsApp > Linked Devices";
     });
   </script>
 </body>
-  </html>
+    </html>
