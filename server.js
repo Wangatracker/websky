@@ -26,8 +26,7 @@ app.post("/pair", async (req, res) => {
   const sock = makeWASocket({
     version,
     auth: state,
-    logger: P({ level: "silent" }),
-    browser: ["Ubuntu", "Chrome", "20.0.04"], // ✅ Looks like a real Chrome browser
+    logger: P({ level: "fatal" }), // ✅ Looks like a real Chrome browser
   });
 
   sockGlobal = sock;
