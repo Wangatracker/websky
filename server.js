@@ -1,65 +1,60 @@
-
-const express = require('express');
-const admin = require('firebase-admin');
-const bodyParser = require('body-parser');
-const fs = require('fs');
-const path = require('path');
+const express = require("express");
+const path = require("path");
+const fs = require("fs");
+const cors = require("cors");
+const pino = require("pino");
+const {
+  default: makeWASocket,
+  useMultiFileAuthState,
+  fetchLatestBaileysVersion
+} = require("@whiskeysockets/baileys");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Firebase setup using env variable
-const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+app.post("/link", async (req, res) => {
+  const phone = req.body.phone?.trim();
+  if (!phone) return res.status(400).json({ message: "Phone number required" });
 
-const db = admin.firestore();
+  const sessionDir = path.join(__dirname, "sessions", phone);
+  fs.mkdirSync(sessionDir, { recursive: true });
 
-app.use(bodyParser.json());
-app.use(express.static('public'));
-
-// Save a contact
-app.post('/api/contact', async (req, res) => {
   try {
-    const { name, phone, email } = req.body;
-    if (!name || !phone || !email) {
-      return res.status(400).json({ error: 'Missing fields' });
-    }
+    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+    const { version } = await fetchLatestBaileysVersion();
 
-    await db.collection('contacts').add({ name, phone, email, createdAt: Date.now() });
-    res.status(200).json({ message: 'Contact saved' });
-  } catch (err) {
-    console.error('Error saving contact:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Download VCF
-app.get('/contacts.vcf', async (req, res) => {
-  try {
-    const snapshot = await db.collection('contacts').get();
-    let vcfContent = '';
-
-    snapshot.forEach(doc => {
-      const c = doc.data();
-      vcfContent += `BEGIN:VCARD
-VERSION:3.0
-FN:${c.name}
-TEL;TYPE=CELL:${c.phone}
-EMAIL:${c.email}
-END:VCARD
-`;
+    const sock = makeWASocket({
+      version,
+      auth: state,
+      logger: pino({ level: "silent" }),
+      printQRInTerminal: false,
+      browser: ["Ubuntu", "Chrome", "22.04"]
     });
 
-    res.setHeader('Content-Disposition', 'attachment; filename="contacts.vcf"');
-    res.setHeader('Content-Type', 'text/vcard');
-    res.send(vcfContent);
+    sock.ev.on("creds.update", saveCreds);
+
+    // Try generating the pairing code
+    const getCode = async () => {
+      try {
+        return await sock.requestPairingCode(`${phone}@s.whatsapp.net`);
+      } catch (e) {
+        await new Promise((r) => setTimeout(r, 2000));
+        return sock.requestPairingCode(`${phone}@s.whatsapp.net`);
+      }
+    };
+
+    const code = await getCode();
+    res.json({ code });
   } catch (err) {
-    console.error('Error generating VCF:', err);
-    res.status(500).send('Server Error');
+    console.error("Error generating code:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
