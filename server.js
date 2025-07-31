@@ -1,57 +1,43 @@
-const express = require("express");
-const path = require("path");
-const fs = require("fs");
-const cors = require("cors");
-const pino = require("pino");
-const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  fetchLatestBaileysVersion
-} = require("@whiskeysockets/baileys");
+const express = require('express');
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
+const P = require('pino');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(express.static('public'));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
 
-app.post("/link", async (req, res) => {
-  const phone = req.body.phone?.trim();
-  if (!phone) return res.status(400).json({ message: "Phone number required" });
+// Endpoint to generate pairing code
+app.post('/generate', async (req, res) => {
+  const phoneNumber = req.body.phone?.trim();
 
-  const sessionDir = path.join(__dirname, "sessions", phone);
-  fs.mkdirSync(sessionDir, { recursive: true });
+  if (!phoneNumber || !/^\d+$/.test(phoneNumber)) {
+    return res.status(400).json({ error: 'Invalid phone number' });
+  }
 
   try {
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+    const { state, saveCreds } = await useMultiFileAuthState("auth_info");
     const { version } = await fetchLatestBaileysVersion();
 
     const sock = makeWASocket({
       version,
       auth: state,
-      logger: pino({ level: "silent" }),
-      printQRInTerminal: false,
-      browser: ["Ubuntu", "Chrome", "22.04"]
+      logger: P({ level: "fatal" }),
     });
 
-    sock.ev.on("creds.update", saveCreds);
-
-    // Try generating the pairing code
-    const getCode = async () => {
-      try {
-        return await sock.requestPairingCode(`${phone}@s.whatsapp.net`);
-      } catch (e) {
-        await new Promise((r) => setTimeout(r, 2000));
-        return sock.requestPairingCode(`${phone}@s.whatsapp.net`);
-      }
-    };
-
-    const code = await getCode();
-    res.json({ code });
+    if (!state.creds.registered) {
+      await sock.requestPairingCode(phoneNumber);
+      console.log(`📲 Pairing code requested for ${phoneNumber}`);
+      res.json({ success: true, message: 'Check your WhatsApp for the linking code.' });
+    } else {
+      res.json({ success: false, message: 'This number is already registered.' });
+    }
   } catch (err) {
-    console.error("Error generating code:", err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error('❌ Error generating code:', err);
+    res.status(500).json({ error: 'Failed to generate code.' });
   }
 });
 
