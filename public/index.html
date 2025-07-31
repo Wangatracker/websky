@@ -1,16 +1,50 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digital Contact VCF</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Wanga WhatsApp Linker</title>
+  <style>
+    body { background:#111; color:#fff; font-family:'Segoe UI'; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; margin:0; }
+    h1 { color:#0f9; font-size:2rem; }
+    input { padding:10px; font-size:1rem; border-radius:6px; border:none; width:260px; margin-top:15px; }
+    button { padding:10px 20px; margin-top:10px; background:#0f9; border:none; color:#000; font-weight:bold; border-radius:5px; cursor:pointer; }
+    #codeBox { margin-top:20px; font-size:1.4rem; color:#0f0; }
+    #error { color:red; margin-top:10px; }
+  </style>
 </head>
-<body class="bg-gray-100 p-10">
-  <div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-md">
-    <h1 class="text-2xl font-bold mb-4">Welcome to Digital Contact VCF</h1>
-    <a href="/dashboard.html" class="text-blue-500 hover:underline">Go to Dashboard</a>
-  </div>
+<body>
+  <h1>🔗 Link Your WhatsApp</h1>
+  <input type="text" id="phone" placeholder="Enter WhatsApp Number" />
+  <button onclick="getCode()">Generate Code</button>
+  <div id="codeBox"></div>
+  <div id="error"></div>
+
+  <script>
+    async function getCode() {
+      const phone = document.getElementById("phone").value.trim();
+      document.getElementById("codeBox").innerText = "⏳ Generating code...";
+      document.getElementById("error").innerText = "";
+
+      try {
+        const res = await fetch("/link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("codeBox").innerText = `🔑 Code: ${data.code}`;
+        } else {
+          document.getElementById("codeBox").innerText = "";
+          document.getElementById("error").innerText = data.message;
+        }
+      } catch (err) {
+        document.getElementById("codeBox").innerText = "";
+        document.getElementById("error").innerText = "❌ Could not contact server.";
+      }
+    }
+  </script>
 </body>
-</html>
+  </html>
